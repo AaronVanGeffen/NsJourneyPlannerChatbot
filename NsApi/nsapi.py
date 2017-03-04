@@ -1,7 +1,7 @@
 import json
 import re
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from urllib import request
 from xml.etree import ElementTree
 
@@ -60,12 +60,14 @@ class NsApi:
         response = response.read().decode('utf-8')
         tree = ElementTree.fromstring(response)
 
-        nowTime = datetime.now()
+        nowTime = datetime.now(tz = timezone(timedelta(hours=1)))
 
         for route in tree:
             departureTime = route.find("GeplandeVertrekTijd")
             departureTime = datetime.strptime(departureTime.text, "%Y-%m-%dT%H:%M:%S%z")
-            if (departureTime - nowTime > 0):
+
+            # Iterate until we find a route that hasn't departed yet.
+            if ((nowTime - departureTime).total_seconds() < 0):
                 break;
 
         print (route)
