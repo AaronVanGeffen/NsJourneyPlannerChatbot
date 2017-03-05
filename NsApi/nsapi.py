@@ -83,10 +83,3 @@ class NsApi:
             raise("Could not fetch the price for this journey.")
 
         raise("Not implemented")
-
-    def compareList(self, list1, list2):
-        for value in list1:
-            if value in list2:
-                return True
-        return False
-
