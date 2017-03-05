@@ -66,13 +66,20 @@ class NsApi:
             departureTime = route.find("GeplandeVertrekTijd")
             departureTime = datetime.strptime(departureTime.text, "%Y-%m-%dT%H:%M:%S%z")
 
-            travelTime = route.find("GeplandeReisTijd")
-
             # Iterate until we find a route that hasn't departed yet.
             if ((nowTime - departureTime).total_seconds() < 0):
                 break;
 
-        return (departureTime, travelTime.text)
+        status = route.find("Status").text
+
+        return {
+            'departureTime': departureTime,
+            'travelTime': route.find("ActueleVertrekTijd").text,
+            'actualTime': route.find("ActueleReisTijd").text,
+            'status': status,
+            'isDelayed': status == "VERTRAAGD",
+            'isNormal':  status == "VOLGENS-PLAN",
+        }
 
 
     def getJourneyPrice(self, fromStation, toStation):
