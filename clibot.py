@@ -126,6 +126,19 @@ class NsBot:
                 if route['isDelayed']:
                     print ("Note: the train is currently delayed by %s." % route['currentDelay'])
 
+                # Blurt out the whole report.
+                # TODO: make this optional or requestable?
+                currentSegment = 0
+                for track in route['journey']:
+                    currentSegment += 1
+                    print ("({0}/{1}) {startStation} platform {startPlatform} at {2} 👉 {endStation} platform {endPlatform} at {3}".format(
+                        currentSegment,
+                        len(route['journey']),
+                        track['startTime'].strftime("%H:%M"),
+                        track['endTime'].strftime("%H:%M"),
+                        **track
+                    ))
+
             # Just the departure station?
             elif 'departure' in self.memory:
                 print ("Alright, where would you like to go?")
