@@ -3,6 +3,7 @@ import re
 
 from datetime import datetime, timedelta, timezone
 from urllib import request
+from urllib.parse import urlencode
 from xml.etree import ElementTree
 
 
@@ -50,8 +51,9 @@ class NsApi:
 
 
     def getPossibleRoutes(self, fromStation, toStation, dateTime = datetime.now(), departureTime = True):
-        params = "fromStation={0}&toStation={1}&dateTime={2}&departure={3}".format(fromStation, toStation,
-            dateTime.strftime("%Y-%m-%dT%H:%M:%S"), departureTime)
+        params = {'fromStation': fromStation, 'toStation': toStation,
+            'dateTime': dateTime.strftime("%Y-%m-%dT%H:%M:%S"), 'departureTime': departureTime}
+        params = urlencode(params)
 
         response = self.fetch("ns-api-treinplanner?" + params)
         if (response.status != 200):
@@ -109,7 +111,8 @@ class NsApi:
 
 
     def getJourneyPrice(self, fromStation, toStation):
-        params = "fromStation={0}&toStation={1}".format(fromStation, toStation)
+        params = {'fromStation': fromStation, 'toStation': toStation}
+        params = urlencode(params)
 
         response = self.fetch("ns-api-prijzen-v3?" + params)
         if (response.status != 200):
