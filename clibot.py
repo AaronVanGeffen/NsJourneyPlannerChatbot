@@ -18,13 +18,6 @@ class NsBot:
         self.rePlanJourney2 = re.compile("(?:naar|to)?\s(?P<toStation>['\-A-z]+)\s(?:van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+)")
 
 
-    def compareList(self, list1, list2):
-        for value in list1:
-            if value in list2:
-                return True
-        return False
-
-
     def getStationInfoFromMsg(self, msg):
         matches = self.rePlanJourney1.match(msg)
         if matches == None:
