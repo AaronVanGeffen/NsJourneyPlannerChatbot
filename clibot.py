@@ -53,7 +53,6 @@ class NsBot:
                 else:
                     stations = {}
 
-        print (stations)
         return stations
 
 
@@ -68,7 +67,6 @@ class NsBot:
                 except ValueError:
                     continue
 
-        print (valid)
         return valid
 
 
@@ -81,48 +79,60 @@ class NsBot:
 
 
     def chat(self):
-        planningList = ["plan", "planning"]
-        quitList = ["quit", "stop"]
-        confirmList = ["yes", "yeah", "yep", "sure", "y"]
-        denyList = ["no", "nope", "n"]
-
         print ("Hello! Welcome to NS, the Dutch Railways! 🚃🚃🚃")
         print ("Where would you like to go today?")
+        print ("(Use ^D to quit)")
 
         self.resetMemory()
 
-        while True:
-            userInput = input(">>> ")
-            input_list = userInput.split()
+        userInput = '🚃'
+        while userInput != '':
+            try:
+                userInput = input("\n>>> ")
+                print ()
+            except EOFError:
+                print ("\nBye!")
+                return
 
             # TODO: only accept these in certain chat state
             stations = self.getStationInfoFromMsg(userInput)
             stations = self.validateStations(stations)
-            self.commitToMemory(stations)
 
-            if self.compareList(input_list, planningList):
-                print("From which station do you want to take the train?")
-                departureStation = input(">>> ")
-                if self.compareList(departureStation.lower().split(), self.knownStationsLower):
-                    print("Valid station")
+            if len(stations):
+                self.commitToMemory(stations)
+            else:
+                print ("Hmm, sorry, I don't quite understand what you mean.")
+                continue
 
-                print("Where do you want to go?")
-                arrivalStation = input(">>> ")
-                if self.compareList(arrivalStation.lower().split(), self.knownStationsLower):
-                    print("Valid station")
+            # Do we have all the ingredients we need to give a journey advice?
+            if 'departure' in self.memory and 'destination' in self.memory:
+                route = self.ns.getPossibleRoutes(self.memory['departure'], self.memory['destination'])
 
-                departureTime, travelTime = self.ns.getPossibleRoutes(departureStation, arrivalStation)
-                print("The train from %s to %s leaves at %s from platform X" % (departureStation, arrivalStation, departureTime.strftime("%H:%M")))
+                # Give them the basic run-down.
+                print ("The next train to {toStation} departs at {0} from station {fromStation}, platform X ".format(
+                    route['departureTime'].strftime("%H:%M"),
+                    **route
+                ))
 
-                print("Would you like to know how long this trip is?")
-                userInput = input(">>> ")
-                if self.compareList(userInput, confirmList):
-                    print("The expected travel time is: %s" %travelTime)
+                # Any transfers they need to be aware of?
+                if route['numTransfers'] == 1:
+                    print ("You will have to transfer once.")
+                elif route['numTransfers'] > 1:
+                    print ("You will have to transfer %s times." % (str(route['numTransfers'])))
 
-            if self.compareList(input_list, quitList):
-                print("Goodbye!")
-                return
+                print ("Planned travel time is %s." % (route['travelTime']))
 
+                # Is the train delayed?
+                if route['isDelayed']:
+                    print ("Note: the train is currently delayed by %s." % route['currentDelay'])
+
+            # Just the departure station?
+            elif 'departure' in self.memory:
+                print ("Alright, where would you like to go?")
+
+            # Just the destination station?
+            elif 'destination' in self.memory:
+                print ("Okay. From which station would you like to depart?")
 
 
 API_LOGIN    = ""
