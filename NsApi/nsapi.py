@@ -72,10 +72,20 @@ class NsApi:
 
         status = route.find("Status").text
 
+        # Any delay?
+        if status == "VERTRAAGD":
+            delay = route.find("AankomstVertraging").text
+        else:
+            delay = ''
+
         return {
+            'fromStation': fromStation,
+            'toStation': toStation,
             'departureTime': departureTime,
-            'travelTime': route.find("ActueleVertrekTijd").text,
+            'travelTime': route.find("GeplandeReisTijd").text,
             'actualTime': route.find("ActueleReisTijd").text,
+            'numTransfers': int(route.find("AantalOverstappen").text),
+            'currentDelay': delay,
             'status': status,
             'isDelayed': status == "VERTRAAGD",
             'isNormal':  status == "VOLGENS-PLAN",
