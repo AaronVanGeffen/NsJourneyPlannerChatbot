@@ -62,13 +62,28 @@ class NsApi:
 
         nowTime = datetime.now(tz = timezone(timedelta(hours=1)))
 
-        for route in tree:
+        for route in tree.findall('ReisMogelijkheid'):
             departureTime = route.find("GeplandeVertrekTijd")
             departureTime = datetime.strptime(departureTime.text, "%Y-%m-%dT%H:%M:%S%z")
 
             # Iterate until we find a route that hasn't departed yet.
             if ((nowTime - departureTime).total_seconds() < 0):
                 break;
+
+        journey = []
+        for track in route.findall('ReisDeel'):
+            stops = track.findall('ReisStop')
+            firstStop = stops[0]
+            lastStop = stops[-1]
+
+            journey.append({
+                'startStation': firstStop.find('Naam').text,
+                'startTime': datetime.strptime(firstStop.find('Tijd').text, "%Y-%m-%dT%H:%M:%S%z"),
+                'startPlatform': firstStop.find('Spoor').text,
+                'endStation': lastStop.find('Naam').text,
+                'endTime': datetime.strptime(lastStop.find('Tijd').text, "%Y-%m-%dT%H:%M:%S%z"),
+                'endPlatform': lastStop.find('Spoor').text,
+            })
 
         status = route.find("Status").text
 
@@ -89,6 +104,7 @@ class NsApi:
             'status': status,
             'isDelayed': status == "VERTRAAGD",
             'isNormal':  status == "VOLGENS-PLAN",
+            'journey': journey,
         }
 
 
@@ -99,4 +115,5 @@ class NsApi:
         if (response.status != 200):
             raise("Could not fetch the price for this journey.")
 
+        # Keeps yielding 'unauthorized' errors, so we'll skip this for now.
         raise("Not implemented")
