@@ -12,10 +12,10 @@ class NsBot:
         self.knownStations      = self.ns.getStationsAsList()
         self.knownStationsLower = [x.lower() for x in self.knownStations]
 
-        self.reReplyDeptStation  = re.compile("(van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+)", re.IGNORECASE)
-        self.reReplyDestStation  = re.compile("(naar|to)\s(?P<toStation>['\-A-z ]+)", re.IGNORECASE)
-        self.rePlanJourney1 = re.compile("(?:van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+)\s(?:naar|to)\s(?P<toStation>['\-A-z ]+)", re.IGNORECASE)
-        self.rePlanJourney2 = re.compile("(?:naar|to)?\s(?P<toStation>['\-A-z ]+)\s(?:van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+)", re.IGNORECASE)
+        self.reReplyDeptStation  = re.compile("^.*?(van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+).*?$", re.IGNORECASE)
+        self.reReplyDestStation  = re.compile("^.*?(naar|to)\s(?P<toStation>['\-A-z ]+).*?$", re.IGNORECASE)
+        self.rePlanJourney1 = re.compile("^.*?(?:van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+?)\s(?:naar|to)\s(?P<toStation>['\-A-z ]+).*?$", re.IGNORECASE)
+        self.rePlanJourney2 = re.compile("^.*?(?:naar|to)?\s(?P<toStation>['\-A-z ]+?)\s(?:van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+).*?$", re.IGNORECASE)
 
 
     def getStationInfoFromMsg(self, msg):
