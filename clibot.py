@@ -102,7 +102,9 @@ class NsBot:
 
 
     def resetMemory(self):
-        self.memory = {}
+        self.memory = {
+            'lastQuestion': -1
+        }
 
 
     def commitToMemory(self, stuff):
@@ -117,23 +119,25 @@ class NsBot:
         print (msg)
 
 
-    def chat(self):
+    def chatLoop(self):
         self.sendReply("Hello! Welcome to NS, the Dutch Railways! 🚃🚃🚃")
         self.sendReply("Where would you like to go today?")
         self.sendReply("(Use ^D to quit)")
 
         self.resetMemory()
 
-        message = '🚃'
-        lastQuestion = -1
-        while message != '':
+        while True:
             try:
                 message = input("\n>>> ")
-                self.sendReply()
+                if not self.handleMessage(message):
+                    return
+
             except EOFError:
                 self.sendReply("\nBye!")
                 return
 
+
+    def handleMessage(self, message):
             # Did they just greet us? Politely return the favour.
             if self.containsGreeting(message):
                 self.sendReply("Hello there!")
@@ -148,7 +152,7 @@ class NsBot:
             elif self.containsGoodbye(message):
                 self.sendReply("Bye bye! See you next time!")
                 isSimpleMessage = True
-                return
+                return False
 
             # Alas, things aren't as simple as they seem, this time!
             else:
@@ -168,30 +172,30 @@ class NsBot:
 
             # A few more tricks: are we replying with a valid station name?
             if self.isAValidStation(message):
-                if lastQuestion == ChatQuestions.ARRIVAL:
+                if self.memory['lastQuestion'] == ChatQuestions.ARRIVAL:
                     self.sendReply("Alright, going to %s! Lovely." % message)
                     self.commitToMemory({'destination': message})
 
-                elif lastQuestion == ChatQuestions.DEPARTURE:
+                elif self.memory['lastQuestion'] == ChatQuestions.DEPARTURE:
                     self.sendReply("Alright, departing at %s." % message)
                     self.commitToMemory({'departure': message})
 
                 else:
                     self.sendReply("Lovely station, %s, but what about it?" % message)
-                    continue
+                    return True
 
             # Another one: are we just replying with a time?
             elif self.isAValidTimestamp(message):
-                if lastQuestion == ChatQuestions.TIME:
+                if self.memory['lastQuestion'] == ChatQuestions.TIME:
                     self.sendReply("Alright, departing at %s!" % message)
                     self.commitToMemory({'time': message, 'isDepartureTime': True})
 
                 else:
                     self.sendReply("That's a wonderful time. What about it, though?")
-                    continue
+                    return True
 
             elif isSimpleMessage:
-                continue
+                return True
 
             if self.verbose:
                 self.sendReply("Memory now: ", self.memory)
@@ -204,7 +208,7 @@ class NsBot:
                 except Exception:
                     self.sendReply("No suitable route could be found between %s and %s. Sorry!" %
                         (self.memory['departure'], self.memory['destination']))
-                    continue
+                    return True
 
                 # Give them the basic run-down.
                 self.sendReply("The next train to {toStation} departs at {0} from station {fromStation}.".format(
@@ -240,17 +244,19 @@ class NsBot:
             # Just the departure station?
             elif not 'departure' in self.memory:
                 self.sendReply("Okay. From which station would you like to depart?")
-                lastQuestion = ChatQuestions.DEPARTURE
+                self.commitToMemory({'lastQuestion': ChatQuestions.DEPARTURE})
 
             # Just the destination station?
             elif not 'destination' in self.memory:
                 self.sendReply("Alright, where would you like to go?")
-                lastQuestion = ChatQuestions.ARRIVAL
+                self.commitToMemory({'lastQuestion': ChatQuestions.ARRIVAL})
 
             # Or is it just the departure or arrival time we're lacking?
             elif not 'time' in self.memory:
                 self.sendReply("Great! What time do you want to leave?")
-                lastQuestion = ChatQuestions.TIME
+                self.commitToMemory({'lastQuestion': ChatQuestions.TIME})
+
+            return True
 
 
 # Optionally run the bot.
@@ -265,4 +271,4 @@ if __name__ == '__main__':
 
     # Run the bot.
     ns = NsBot(args.login, args.password, args.verbose)
-    ns.chat()
+    ns.chatLoop()
