@@ -46,8 +46,7 @@ class NsApi:
             for name in [station.text for station in station.find("Synoniemen")]:
                 stations.append(name)
 
-        stations.sort()
-        return stations
+        return sorted(set(stations))
 
 
     def getPossibleRoutes(self, fromStation, toStation, requestTime = datetime.now(tz = timezone(timedelta(hours=1))), departureTime = True):
