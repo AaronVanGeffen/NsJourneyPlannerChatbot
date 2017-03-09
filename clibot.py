@@ -54,24 +54,24 @@ class NsBot:
     def getTimeInfoFromMsg(self, msg):
         timeMatch = self.reReplyTime.match(msg)
         if timeMatch == None and (msg == "nu" or msg == "now"):
-                return {
-                        'time': datetime.now(tz = timezone(timedelta(hours=1))),
-                        'isDepartureTime': True,
-                }
+            return {
+                'time': datetime.now(tz = timezone(timedelta(hours=1))),
+                'isDepartureTime': True,
+            }
 
         elif timeMatch == None:
-                return {}
+            return {}
 
         else:
-                isDepartureTime = timeMatch.group('kind') in ['depart', 'vertrek', '']
+            isDepartureTime = timeMatch.group('kind') in ['depart', 'vertrek', '']
 
-                timestamp = datetime.now(tz = timezone(timedelta(hours=1)))
-                timestamp = timestamp.replace(hour = int(timeMatch.group('hour')),
-                                              minute = int(timeMatch.group('minute')))
-                return {
-                        'time': timestamp,
-                        'isDepartureTime': isDepartureTime,
-                }
+            timestamp = datetime.now(tz = timezone(timedelta(hours=1)))
+            timestamp = timestamp.replace(hour = int(timeMatch.group('hour')),
+                                          minute = int(timeMatch.group('minute')))
+            return {
+                'time': timestamp,
+                'isDepartureTime': isDepartureTime,
+            }
 
 
     def validateStations(self, stations):
