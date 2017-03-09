@@ -49,6 +49,18 @@ class NsApi:
         return sorted(set(stations))
 
 
+    def findSuitableRoute(self, requestedTime, availableRoutes):
+        for route in availableRoutes:
+            departureTime = route.find("GeplandeVertrekTijd")
+            departureTime = datetime.strptime(departureTime.text, "%Y-%m-%dT%H:%M:%S%z")
+
+            # Iterate until we find a route that hasn't departed yet.
+            if ((requestedTime - departureTime).total_seconds() < 0):
+                return (departureTime, route)
+
+        raise Exception("No suitable route found in set.")
+
+
     def getPossibleRoutes(self, fromStation, toStation, requestTime = datetime.now(tz = timezone(timedelta(hours=1))), departureTime = True):
         params = {'fromStation': fromStation, 'toStation': toStation,
             'dateTime': requestTime.strftime("%Y-%m-%dT%H:%M:%S"), 'departureTime': departureTime}
@@ -56,18 +68,12 @@ class NsApi:
 
         response = self.fetch("ns-api-treinplanner?" + params)
         if (response.status != 200):
-            raise("Could not fetch a list of potential routes.")
+            raise Exception("Could not fetch a list of potential routes.")
 
         response = response.read().decode('utf-8')
         tree = ElementTree.fromstring(response)
 
-        for route in tree.findall('ReisMogelijkheid'):
-            departureTime = route.find("GeplandeVertrekTijd")
-            departureTime = datetime.strptime(departureTime.text, "%Y-%m-%dT%H:%M:%S%z")
-
-            # Iterate until we find a route that hasn't departed yet.
-            if ((requestTime - departureTime).total_seconds() < 0):
-                break;
+        (departureTime, route) = self.findSuitableRoute(requestTime, tree.findall('ReisMogelijkheid'))
 
         journey = []
         for track in route.findall('ReisDeel'):
@@ -113,7 +119,7 @@ class NsApi:
 
         response = self.fetch("ns-api-prijzen-v3?" + params)
         if (response.status != 200):
-            raise("Could not fetch the price for this journey.")
+            raise Exception("Could not fetch the price for this journey.")
 
         # Keeps yielding 'unauthorized' errors, so we'll skip this for now.
         raise("Not implemented")
