@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from enum  import Enum
 from NsApi import NsApi
+from datetime import datetime, timedelta, timezone
 
 import re
 
@@ -12,8 +13,10 @@ class NsBot:
         self.knownStations      = self.ns.getStationsAsList()
         self.knownStationsLower = [x.lower() for x in self.knownStations]
 
-        self.reReplyDeptStation  = re.compile("^.*?(van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+).*?$", re.IGNORECASE)
-        self.reReplyDestStation  = re.compile("^.*?(naar|to)\s(?P<toStation>['\-A-z ]+).*?$", re.IGNORECASE)
+        self.reReplyDeptStation  = re.compile("(van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+)", re.IGNORECASE)
+        self.reReplyDestStation  = re.compile("(naar|to)\s(?P<toStation>['\-A-z ]+)", re.IGNORECASE)
+
+        self.reReplyTime = re.compile("^.*?(?P<kind>arrive|depart|vertrek|aankom(?:en:st))?\s*(?:at|om)\s*(?P<hour>\d+):(?P<minute>\d+).*?$", re.IGNORECASE)
         self.rePlanJourney1 = re.compile("^.*?(?:van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+?)\s(?:naar|to)\s(?P<toStation>['\-A-z ]+).*?$", re.IGNORECASE)
         self.rePlanJourney2 = re.compile("^.*?(?:naar|to)?\s(?P<toStation>['\-A-z ]+?)\s(?:van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+).*?$", re.IGNORECASE)
 
@@ -47,6 +50,28 @@ class NsBot:
                     stations = {}
 
         return stations
+
+    def getTimeInfoFromMsg(self, msg):
+        timeMatch = self.reReplyTime.match(msg)
+        if timeMatch == None and (msg == "nu" or msg == "now"):
+                return {
+                        'time': datetime.now(tz = timezone(timedelta(hours=1))),
+                        'isDepartureTime': True,
+                }
+
+        elif timeMatch == None:
+                return {}
+
+        else:
+                isDepartureTime = timeMatch.group('kind') in ['depart', 'vertrek', '']
+
+                timestamp = datetime.now(tz = timezone(timedelta(hours=1)))
+                timestamp = timestamp.replace(hour = int(timeMatch.group('hour')),
+                                              minute = int(timeMatch.group('minute')))
+                return {
+                        'time': timestamp,
+                        'isDepartureTime': isDepartureTime,
+                }
 
 
     def validateStations(self, stations):
@@ -90,19 +115,25 @@ class NsBot:
             # TODO: only accept these in certain chat state
             stations = self.getStationInfoFromMsg(userInput)
             stations = self.validateStations(stations)
+            time = self.getTimeInfoFromMsg(userInput)
 
             if len(stations):
                 self.commitToMemory(stations)
-            else:
+
+            if len(time):
+                self.commitToMemory(time)
+
+            if not len(stations) and not len(time):
                 print ("Hmm, sorry, I don't quite understand what you mean.")
                 continue
 
             # Do we have all the ingredients we need to give a journey advice?
-            if 'departure' in self.memory and 'destination' in self.memory:
-                route = self.ns.getPossibleRoutes(self.memory['departure'], self.memory['destination'])
+            if 'departure' in self.memory and 'destination' in self.memory and 'time' in self.memory:
+                route = self.ns.getPossibleRoutes(self.memory['departure'], self.memory['destination'],
+                                self.memory['time'], self.memory['isDepartureTime'])
 
                 # Give them the basic run-down.
-                print ("The next train to {toStation} departs at {0} from station {fromStation}, platform X ".format(
+                print ("The next train to {toStation} departs at {0} from station {fromStation}".format(
                     route['departureTime'].strftime("%H:%M"),
                     **route
                 ))
@@ -131,6 +162,9 @@ class NsBot:
                         track['endTime'].strftime("%H:%M"),
                         **track
                     ))
+
+            elif not 'time' in self.memory:
+                print ("Great! When do you want to leave?")
 
             # Just the departure station?
             elif 'departure' in self.memory:
