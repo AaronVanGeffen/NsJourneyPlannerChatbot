@@ -28,7 +28,7 @@ class NsBot:
         self.reReplyDeptStation = re.compile("^.*(van(?:uit)?|from)\s(?P<fromStation>" + expStations + ").*$", re.IGNORECASE)
         self.reReplyDestStation = re.compile("^.*(naar|to)\s(?P<toStation>" + expStations + ").*$", re.IGNORECASE)
 
-        self.reGreeting = re.compile("^.*(hallo|hoi|goede\s*(morgen?|middag|avond)|" +
+        self.reGreeting = re.compile("^.*(hallo|hoi|goeden?\s*(morgen?|middag|avond)|" +
                                            "hello|hi|good\s*(morning|afternoon|evening)).*$", re.IGNORECASE)
 
         self.reThanks = re.compile("^.*(bedankt|dankjewel|dankje|danku|dank u|thank|thanks).*$", re.IGNORECASE)
@@ -36,7 +36,7 @@ class NsBot:
         self.reGoodbye = re.compile("^.*(bye|goodbye|farewell|doeg|doei|dag|houdoe|mazzel).*$", re.IGNORECASE)
 
         self.reReplyTime = re.compile("^.*?(?P<kind>arrive|depart|vertrek|aankom(?:en:st))?\s*" +
-                                      "(?:at|om)\s*(?P<hour>\d+):(?P<minute>\d+).*?$", re.IGNORECASE)
+                                      "(?:at|om|rond)\s*(?P<hour>\d+):(?P<minute>\d+).*?$", re.IGNORECASE)
 
 
     def getStationInfoFromMsg(self, msg):
