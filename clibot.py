@@ -59,7 +59,7 @@ class NsBot:
 
     def getTimeInfoFromMsg(self, msg):
         timeMatch = self.reReplyTime.match(msg)
-        if timeMatch == None and (msg == "nu" or msg == "now"):
+        if timeMatch == None and (msg in ["nu", "now", "meteen", "at once", "zsm", "z.s.m.", "zo snel mogelijk", "asap", "a.s.a.p."]):
             return {
                 'time': datetime.now(tz = timezone(timedelta(hours=1))),
                 'isDepartureTime': True,
