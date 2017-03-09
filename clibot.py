@@ -15,12 +15,25 @@ class NsBot:
         self.knownStations      = self.ns.getStationsAsList()
         self.knownStationsLower = [x.lower() for x in self.knownStations]
 
-        self.reReplyDeptStation  = re.compile("(van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+)", re.IGNORECASE)
-        self.reReplyDestStation  = re.compile("(naar|to)\s(?P<toStation>['\-A-z ]+)", re.IGNORECASE)
+        self.knownStations.sort(key = len, reverse = True)
+        escStations = [re.escape(station) for station in self.knownStations]
+        expStations = '|'.join(escStations)
 
-        self.reReplyTime = re.compile("^.*?(?P<kind>arrive|depart|vertrek|aankom(?:en:st))?\s*(?:at|om)\s*(?P<hour>\d+):(?P<minute>\d+).*?$", re.IGNORECASE)
-        self.rePlanJourney1 = re.compile("^.*?(?:van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+?)\s(?:naar|to)\s(?P<toStation>['\-A-z ]+).*?$", re.IGNORECASE)
-        self.rePlanJourney2 = re.compile("^.*?(?:naar|to)?\s(?P<toStation>['\-A-z ]+?)\s(?:van(?:uit)?|from)\s(?P<fromStation>['\-A-z ]+).*?$", re.IGNORECASE)
+        self.reReplyDeptStation  = re.compile("(van(?:uit)?|from)\s(?P<fromStation>" + expStations + ")", re.IGNORECASE)
+        self.reReplyDestStation  = re.compile("(naar|to)\s(?P<toStation>" + expStations + ")", re.IGNORECASE)
+
+        self.reReplyTime = re.compile("^.*?(?P<kind>arrive|depart|vertrek|aankom(?:en:st))?\s*" +
+                                      "(?:at|om)\s*(?P<hour>\d+):(?P<minute>\d+).*?$", re.IGNORECASE)
+
+        self.rePlanJourney1 = re.compile("^.*?\s*(om|at)?\s*.*?" +
+                                         "(?:van(?:uit)?|from)\s(?P<fromStation>" + expStations + ")\s*" +
+                                         "(?:naar|to)\s(?P<toStation>" + expStations + ")\s*" +
+                                         "(om|at|).*?$", re.IGNORECASE)
+
+        self.rePlanJourney2 = re.compile("^.*?\s*(om|at)?\s*.*?" +
+                                         "(?:naar|to)?\s(?P<toStation>" + expStations + ")\s*" +
+                                         "(?:van(?:uit)?|from)\s(?P<fromStation>" + expStations + ")\s*" +
+                                         "(om|at|).*?$", re.IGNORECASE)
 
 
     def getStationInfoFromMsg(self, msg):
@@ -76,20 +89,6 @@ class NsBot:
             }
 
 
-    def validateStations(self, stations):
-        valid = {}
-        for what in ['departure', 'destination']:
-            if what in stations:
-                station = stations[what].lower()
-                try:
-                    index = self.knownStationsLower.index(station)
-                    valid[what] = self.knownStations[index]
-                except ValueError:
-                    continue
-
-        return valid
-
-
     def resetMemory(self):
         self.memory = {}
 
@@ -116,7 +115,6 @@ class NsBot:
 
             # TODO: only accept these in certain chat state
             stations = self.getStationInfoFromMsg(userInput)
-            stations = self.validateStations(stations)
             time = self.getTimeInfoFromMsg(userInput)
 
             if len(stations):
