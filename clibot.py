@@ -175,16 +175,17 @@ class NsBot:
                 print ("Okay. From which station would you like to depart?")
 
 
-API_LOGIN    = ""
-API_PASSWORD = ""
 
 
-ns = NsBot(API_LOGIN, API_PASSWORD)
-ns.chat()
+# Optionally run the bot.
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description = 'Chatbot for Dutch Railways using command-line interaction.', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-l', '--login', required = True, help = 'your API account email address')
+    parser.add_argument('-p', '--password', required = True, help = 'your API account password')
 
+    # Fetch command line arguments.
+    args = parser.parse_args()
 
-#ns.getJourneyPrice("Nm", "Ut")
-#departureTime, route = ns.getPossibleRoutes("Nm", "Ut")
-
-#departureTime = route.find("GeplandeVertrekTijd")
-
+    # Run the bot.
+    ns = NsBot(args.login, args.password, args.verbose)
+    ns.chat()
