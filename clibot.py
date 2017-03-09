@@ -19,52 +19,30 @@ class NsBot:
         escStations = [re.escape(station) for station in self.knownStations]
         expStations = '|'.join(escStations)
 
-        self.reReplyDeptStation  = re.compile("(van(?:uit)?|from)\s(?P<fromStation>" + expStations + ")", re.IGNORECASE)
-        self.reReplyDestStation  = re.compile("(naar|to)\s(?P<toStation>" + expStations + ")", re.IGNORECASE)
+        self.reReplyDeptStation = re.compile("^.*(van(?:uit)?|from)\s(?P<fromStation>" + expStations + ").*$", re.IGNORECASE)
+        self.reReplyDestStation = re.compile("^.*(naar|to)\s(?P<toStation>" + expStations + ").*$", re.IGNORECASE)
 
         self.reReplyTime = re.compile("^.*?(?P<kind>arrive|depart|vertrek|aankom(?:en:st))?\s*" +
                                       "(?:at|om)\s*(?P<hour>\d+):(?P<minute>\d+).*?$", re.IGNORECASE)
 
-        self.rePlanJourney1 = re.compile("^.*?\s*(om|at)?\s*.*?" +
-                                         "(?:van(?:uit)?|from)\s(?P<fromStation>" + expStations + ")\s*" +
-                                         "(?:naar|to)\s(?P<toStation>" + expStations + ")\s*" +
-                                         "(om|at|).*?$", re.IGNORECASE)
-
-        self.rePlanJourney2 = re.compile("^.*?\s*(om|at)?\s*.*?" +
-                                         "(?:naar|to)?\s(?P<toStation>" + expStations + ")\s*" +
-                                         "(?:van(?:uit)?|from)\s(?P<fromStation>" + expStations + ")\s*" +
-                                         "(om|at|).*?$", re.IGNORECASE)
-
 
     def getStationInfoFromMsg(self, msg):
-        matches = self.rePlanJourney1.match(msg)
-        if matches == None:
-           matches = self.rePlanJourney2.match(msg)
+        stations = {}
 
+        matches = self.reReplyDeptStation.match(msg)
         if matches != None:
-            stations = {
-                'departure': matches.group('fromStation'),
+            stations.update({
+                'departure': matches.group('fromStation')
+            })
+
+        matches = self.reReplyDestStation.match(msg)
+        if matches != None:
+            stations.update({
                 'destination': matches.group('toStation')
-            }
-
-        else:
-            matches = self.reReplyDeptStation.match(msg)
-            if matches != None:
-                stations = {
-                    'departure': matches.group('fromStation')
-                }
-
-            else:
-                matches = self.reReplyDestStation.match(msg)
-                if matches != None:
-                    stations = {
-                        'destination': matches.group('toStation')
-                    }
-
-                else:
-                    stations = {}
+            })
 
         return stations
+
 
     def getTimeInfoFromMsg(self, msg):
         timeMatch = self.reReplyTime.match(msg)
