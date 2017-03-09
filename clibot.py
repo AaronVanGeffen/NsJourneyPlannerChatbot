@@ -120,28 +120,28 @@ class NsBot:
 
         self.resetMemory()
 
-        userInput = '🚃'
+        message = '🚃'
         lastQuestion = -1
-        while userInput != '':
+        while message != '':
             try:
-                userInput = input("\n>>> ")
+                message = input("\n>>> ")
                 print ()
             except EOFError:
                 print ("\nBye!")
                 return
 
             # Did they just greet us? Politely return the favour.
-            if self.containsGreeting(userInput):
+            if self.containsGreeting(message):
                 print ("Hello there!")
                 isSimpleMessage = True
 
             # Or did they just thank us? Who knows why, but let's be polite.
-            elif self.containsThanks(userInput):
+            elif self.containsThanks(message):
                 print ("Oh, you're very welcome!")
                 isSimpleMessage = True
 
             # Are they saying farewell? Then let's part ways.
-            elif self.containsGoodbye(userInput):
+            elif self.containsGoodbye(message):
                 print ("Bye bye! See you next time!")
                 isSimpleMessage = True
                 return
@@ -151,36 +151,36 @@ class NsBot:
                 isSimpleMessage = False
 
             # Try and get as many info about our route.
-            stations = self.getStationInfoFromMsg(userInput)
+            stations = self.getStationInfoFromMsg(message)
             if len(stations):
                 isSimpleMessage = False
                 self.commitToMemory(stations)
 
             # And indeed, when we arrive or depart.
-            time = self.getTimeInfoFromMsg(userInput)
+            time = self.getTimeInfoFromMsg(message)
             if len(time):
                 isSimpleMessage = False
                 self.commitToMemory(time)
 
             # A few more tricks: are we replying with a valid station name?
-            if self.isAValidStation(userInput):
+            if self.isAValidStation(message):
                 if lastQuestion == ChatQuestions.ARRIVAL:
-                    print ("Alright, going to %s! Lovely." % userInput)
-                    self.commitToMemory({'destination': userInput})
+                    print ("Alright, going to %s! Lovely." % message)
+                    self.commitToMemory({'destination': message})
 
                 elif lastQuestion == ChatQuestions.DEPARTURE:
-                    print ("Alright, departing at %s." % userInput)
-                    self.commitToMemory({'departure': userInput})
+                    print ("Alright, departing at %s." % message)
+                    self.commitToMemory({'departure': message})
 
                 else:
-                    print ("Lovely station, %s, but what about it?" % userInput)
+                    print ("Lovely station, %s, but what about it?" % message)
                     continue
 
             # Another one: are we just replying with a time?
-            elif self.isAValidTimestamp(userInput):
+            elif self.isAValidTimestamp(message):
                 if lastQuestion == ChatQuestions.TIME:
-                    print ("Alright, departing at %s!" % userInput)
-                    self.commitToMemory({'time': userInput, 'isDepartureTime': True})
+                    print ("Alright, departing at %s!" % message)
+                    self.commitToMemory({'time': message, 'isDepartureTime': True})
 
                 else:
                     print ("That's a wonderful time. What about it, though?")
