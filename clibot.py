@@ -168,9 +168,6 @@ class NsBot:
                         **track
                     ))
 
-            elif not 'time' in self.memory:
-                print ("Great! When do you want to leave?")
-
             # Just the departure station?
             elif 'departure' in self.memory:
                 print ("Alright, where would you like to go?")
@@ -179,7 +176,13 @@ class NsBot:
             elif 'destination' in self.memory:
                 print ("Okay. From which station would you like to depart?")
 
+            # So we have our stations, just no time yet?
+            elif 'time' in self.memory:
+                print ("Alright! Where would you like to go?")
 
+            # Or is it just the departure or arrival time we're lacking?
+            elif not 'time' in self.memory:
+                print ("Great! When do you want to leave?")
 
 
 # Optionally run the bot.
