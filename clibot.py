@@ -3,12 +3,14 @@ from enum  import Enum
 from NsApi import NsApi
 from datetime import datetime, timedelta, timezone
 
+import argparse
 import re
 
 
 class NsBot:
-    def __init__(self, login, password):
+    def __init__(self, login, password, verbose = False):
         self.ns = NsApi(login, password)
+        self.verbose = verbose
 
         self.knownStations      = self.ns.getStationsAsList()
         self.knownStationsLower = [x.lower() for x in self.knownStations]
@@ -123,6 +125,9 @@ class NsBot:
             if len(time):
                 self.commitToMemory(time)
 
+            if self.verbose:
+                print ("Memory now: ", self.memory)
+
             if not len(stations) and not len(time):
                 print ("Hmm, sorry, I don't quite understand what you mean.")
                 continue
@@ -182,6 +187,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Chatbot for Dutch Railways using command-line interaction.', formatter_class = argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-l', '--login', required = True, help = 'your API account email address')
     parser.add_argument('-p', '--password', required = True, help = 'your API account password')
+    parser.add_argument('-v', '--verbose', default = False, help = "increase output verbosity", action = "store_true")
 
     # Fetch command line arguments.
     args = parser.parse_args()
