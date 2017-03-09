@@ -22,6 +22,13 @@ class NsBot:
         self.reReplyDeptStation = re.compile("^.*(van(?:uit)?|from)\s(?P<fromStation>" + expStations + ").*$", re.IGNORECASE)
         self.reReplyDestStation = re.compile("^.*(naar|to)\s(?P<toStation>" + expStations + ").*$", re.IGNORECASE)
 
+        self.reGreeting = re.compile("^.*(hallo|hoi|goede\s*(morgen?|middag|avond)|" +
+                                           "hello|hi|good\s*(morning|afternoon|evening)).*$", re.IGNORECASE)
+
+        self.reThanks = re.compile("^.*(bedankt|dankjewel|dankje|danku|dank u|thank|thanks).*$", re.IGNORECASE)
+
+        self.reGoodbye = re.compile("^.*(bye|goodbye|farewell|doeg|doei|dag|houdoe|mazzel).*$", re.IGNORECASE)
+
         self.reReplyTime = re.compile("^.*?(?P<kind>arrive|depart|vertrek|aankom(?:en:st))?\s*" +
                                       "(?:at|om)\s*(?P<hour>\d+):(?P<minute>\d+).*?$", re.IGNORECASE)
 
@@ -67,6 +74,18 @@ class NsBot:
             }
 
 
+    def containsGreeting(self, msg):
+        return self.reGreeting.match(msg) != None
+
+
+    def containsThanks(self, msg):
+        return self.reThanks.match(msg) != None
+
+
+    def containsGoodbye(self, msg):
+        return self.reGoodbye.match(msg) != None
+
+
     def resetMemory(self):
         self.memory = {}
 
@@ -91,6 +110,27 @@ class NsBot:
                 print ("\nBye!")
                 return
 
+            # Did they just greet us? Politely return the favour.
+            if self.containsGreeting(userInput):
+                print ("Hello there!")
+                hasSimpleMessage = True
+
+            # Or did they just thank us? Who knows why, but let's be polite.
+            elif self.containsThanks(userInput):
+                print ("Oh, you're very welcome!")
+                hasSimpleMessage = True
+
+            # Are they saying farewell? Then let's part ways.
+            elif self.containsGoodbye(userInput):
+                print ("Bye bye! See you next time!")
+                hasSimpleMessage = True
+                return
+
+            # Alas, things aren't as simple as they seem, this time!
+            else:
+                hasSimpleMessage = False
+
+
             # TODO: only accept these in certain chat state
             stations = self.getStationInfoFromMsg(userInput)
             time = self.getTimeInfoFromMsg(userInput)
@@ -105,7 +145,8 @@ class NsBot:
                 print ("Memory now: ", self.memory)
 
             if not len(stations) and not len(time):
-                print ("Hmm, sorry, I don't quite understand what you mean.")
+                if not hasSimpleMessage:
+                    print ("Hmm, sorry, I don't quite understand what you mean.")
                 continue
 
             # Do we have all the ingredients we need to give a journey advice?
