@@ -7,6 +7,12 @@ import argparse
 import re
 
 
+class ChatQuestions(Enum):
+    ARRIVAL = 1
+    DEPARTURE = 2
+    TIME = 3
+
+
 class NsBot:
     def __init__(self, login, password, verbose = False):
         self.ns = NsApi(login, password)
@@ -74,6 +80,15 @@ class NsBot:
             }
 
 
+    def isAValidStation(self, msg):
+        return msg.lower() in self.knownStationsLower
+
+
+    def isAValidTimestamp(self, msg):
+        test = re.compile('^\d{1,2}:\d{2}$')
+        return test.match(msg) != None
+
+
     def containsGreeting(self, msg):
         return self.reGreeting.match(msg) != None
 
@@ -94,6 +109,10 @@ class NsBot:
         self.memory.update(stuff)
 
 
+    def allSetForJourneyAdvice(self):
+        return 'departure' in self.memory and 'destination' in self.memory and 'time' in self.memory
+
+
     def chat(self):
         print ("Hello! Welcome to NS, the Dutch Railways! 🚃🚃🚃")
         print ("Where would you like to go today?")
@@ -102,6 +121,7 @@ class NsBot:
         self.resetMemory()
 
         userInput = '🚃'
+        lastQuestion = -1
         while userInput != '':
             try:
                 userInput = input("\n>>> ")
@@ -113,44 +133,67 @@ class NsBot:
             # Did they just greet us? Politely return the favour.
             if self.containsGreeting(userInput):
                 print ("Hello there!")
-                hasSimpleMessage = True
+                isSimpleMessage = True
 
             # Or did they just thank us? Who knows why, but let's be polite.
             elif self.containsThanks(userInput):
                 print ("Oh, you're very welcome!")
-                hasSimpleMessage = True
+                isSimpleMessage = True
 
             # Are they saying farewell? Then let's part ways.
             elif self.containsGoodbye(userInput):
                 print ("Bye bye! See you next time!")
-                hasSimpleMessage = True
+                isSimpleMessage = True
                 return
 
             # Alas, things aren't as simple as they seem, this time!
             else:
-                hasSimpleMessage = False
+                isSimpleMessage = False
 
-
-            # TODO: only accept these in certain chat state
+            # Try and get as many info about our route.
             stations = self.getStationInfoFromMsg(userInput)
-            time = self.getTimeInfoFromMsg(userInput)
-
             if len(stations):
+                isSimpleMessage = False
                 self.commitToMemory(stations)
 
+            # And indeed, when we arrive or depart.
+            time = self.getTimeInfoFromMsg(userInput)
             if len(time):
+                isSimpleMessage = False
                 self.commitToMemory(time)
+
+            # A few more tricks: are we replying with a valid station name?
+            if self.isAValidStation(userInput):
+                if lastQuestion == ChatQuestions.ARRIVAL:
+                    print ("Alright, going to %s! Lovely." % userInput)
+                    self.commitToMemory({'destination': userInput})
+
+                elif lastQuestion == ChatQuestions.DEPARTURE:
+                    print ("Alright, departing at %s." % userInput)
+                    self.commitToMemory({'departure': userInput})
+
+                else:
+                    print ("Lovely station, %s, but what about it?" % userInput)
+                    continue
+
+            # Another one: are we just replying with a time?
+            elif self.isAValidTimestamp(userInput):
+                if lastQuestion == ChatQuestions.TIME:
+                    print ("Alright, departing at %s!" % userInput)
+                    self.commitToMemory({'time': userInput, 'isDepartureTime': True})
+
+                else:
+                    print ("That's a wonderful time. What about it, though?")
+                    continue
+
+            elif isSimpleMessage:
+                continue
 
             if self.verbose:
                 print ("Memory now: ", self.memory)
 
-            if not len(stations) and not len(time):
-                if not hasSimpleMessage:
-                    print ("Hmm, sorry, I don't quite understand what you mean.")
-                continue
-
             # Do we have all the ingredients we need to give a journey advice?
-            if 'departure' in self.memory and 'destination' in self.memory and 'time' in self.memory:
+            if self.allSetForJourneyAdvice():
                 try:
                     route = self.ns.getPossibleRoutes(self.memory['departure'], self.memory['destination'],
                                     self.memory['time'], self.memory['isDepartureTime'])
@@ -160,7 +203,7 @@ class NsBot:
                     continue
 
                 # Give them the basic run-down.
-                print ("The next train to {toStation} departs at {0} from station {fromStation}".format(
+                print ("The next train to {toStation} departs at {0} from station {fromStation}.".format(
                     route['departureTime'].strftime("%H:%M"),
                     **route
                 ))
@@ -193,14 +236,17 @@ class NsBot:
             # Just the departure station?
             elif not 'departure' in self.memory:
                 print ("Okay. From which station would you like to depart?")
+                lastQuestion = ChatQuestions.DEPARTURE
 
             # Just the destination station?
             elif not 'destination' in self.memory:
                 print ("Alright, where would you like to go?")
+                lastQuestion = ChatQuestions.ARRIVAL
 
             # Or is it just the departure or arrival time we're lacking?
             elif not 'time' in self.memory:
                 print ("Great! What time do you want to leave?")
+                lastQuestion = ChatQuestions.TIME
 
 
 # Optionally run the bot.
