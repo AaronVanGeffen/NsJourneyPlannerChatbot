@@ -113,10 +113,14 @@ class NsBot:
         return 'departure' in self.memory and 'destination' in self.memory and 'time' in self.memory
 
 
+    def sendReply(self, msg):
+        print (msg)
+
+
     def chat(self):
-        print ("Hello! Welcome to NS, the Dutch Railways! 🚃🚃🚃")
-        print ("Where would you like to go today?")
-        print ("(Use ^D to quit)")
+        self.sendReply("Hello! Welcome to NS, the Dutch Railways! 🚃🚃🚃")
+        self.sendReply("Where would you like to go today?")
+        self.sendReply("(Use ^D to quit)")
 
         self.resetMemory()
 
@@ -125,24 +129,24 @@ class NsBot:
         while message != '':
             try:
                 message = input("\n>>> ")
-                print ()
+                self.sendReply()
             except EOFError:
-                print ("\nBye!")
+                self.sendReply("\nBye!")
                 return
 
             # Did they just greet us? Politely return the favour.
             if self.containsGreeting(message):
-                print ("Hello there!")
+                self.sendReply("Hello there!")
                 isSimpleMessage = True
 
             # Or did they just thank us? Who knows why, but let's be polite.
             elif self.containsThanks(message):
-                print ("Oh, you're very welcome!")
+                self.sendReply("Oh, you're very welcome!")
                 isSimpleMessage = True
 
             # Are they saying farewell? Then let's part ways.
             elif self.containsGoodbye(message):
-                print ("Bye bye! See you next time!")
+                self.sendReply("Bye bye! See you next time!")
                 isSimpleMessage = True
                 return
 
@@ -165,32 +169,32 @@ class NsBot:
             # A few more tricks: are we replying with a valid station name?
             if self.isAValidStation(message):
                 if lastQuestion == ChatQuestions.ARRIVAL:
-                    print ("Alright, going to %s! Lovely." % message)
+                    self.sendReply("Alright, going to %s! Lovely." % message)
                     self.commitToMemory({'destination': message})
 
                 elif lastQuestion == ChatQuestions.DEPARTURE:
-                    print ("Alright, departing at %s." % message)
+                    self.sendReply("Alright, departing at %s." % message)
                     self.commitToMemory({'departure': message})
 
                 else:
-                    print ("Lovely station, %s, but what about it?" % message)
+                    self.sendReply("Lovely station, %s, but what about it?" % message)
                     continue
 
             # Another one: are we just replying with a time?
             elif self.isAValidTimestamp(message):
                 if lastQuestion == ChatQuestions.TIME:
-                    print ("Alright, departing at %s!" % message)
+                    self.sendReply("Alright, departing at %s!" % message)
                     self.commitToMemory({'time': message, 'isDepartureTime': True})
 
                 else:
-                    print ("That's a wonderful time. What about it, though?")
+                    self.sendReply("That's a wonderful time. What about it, though?")
                     continue
 
             elif isSimpleMessage:
                 continue
 
             if self.verbose:
-                print ("Memory now: ", self.memory)
+                self.sendReply("Memory now: ", self.memory)
 
             # Do we have all the ingredients we need to give a journey advice?
             if self.allSetForJourneyAdvice():
@@ -198,34 +202,34 @@ class NsBot:
                     route = self.ns.getPossibleRoutes(self.memory['departure'], self.memory['destination'],
                                     self.memory['time'], self.memory['isDepartureTime'])
                 except Exception:
-                    print ("No suitable route could be found between %s and %s. Sorry!" %
+                    self.sendReply("No suitable route could be found between %s and %s. Sorry!" %
                         (self.memory['departure'], self.memory['destination']))
                     continue
 
                 # Give them the basic run-down.
-                print ("The next train to {toStation} departs at {0} from station {fromStation}.".format(
+                self.sendReply("The next train to {toStation} departs at {0} from station {fromStation}.".format(
                     route['departureTime'].strftime("%H:%M"),
                     **route
                 ))
 
                 # Any transfers they need to be aware of?
                 if route['numTransfers'] == 1:
-                    print ("You will have to transfer once.")
+                    self.sendReply("You will have to transfer once.")
                 elif route['numTransfers'] > 1:
-                    print ("You will have to transfer %s times." % (str(route['numTransfers'])))
+                    self.sendReply("You will have to transfer %s times." % (str(route['numTransfers'])))
 
-                print ("Planned travel time is %s." % (route['travelTime']))
+                self.sendReply("Planned travel time is %s." % (route['travelTime']))
 
                 # Is the train delayed?
                 if route['isDelayed']:
-                    print ("Note: the train is currently delayed by %s." % route['currentDelay'])
+                    self.sendReply("Note: the train is currently delayed by %s." % route['currentDelay'])
 
                 # Blurt out the whole report.
                 # TODO: make this optional or requestable?
                 currentSegment = 0
                 for track in route['journey']:
                     currentSegment += 1
-                    print ("({0}/{1}) {startStation} platform {startPlatform} at {2} 👉 {endStation} platform {endPlatform} at {3}".format(
+                    self.sendReply("({0}/{1}) {startStation} platform {startPlatform} at {2} 👉 {endStation} platform {endPlatform} at {3}".format(
                         currentSegment,
                         len(route['journey']),
                         track['startTime'].strftime("%H:%M"),
@@ -235,17 +239,17 @@ class NsBot:
 
             # Just the departure station?
             elif not 'departure' in self.memory:
-                print ("Okay. From which station would you like to depart?")
+                self.sendReply("Okay. From which station would you like to depart?")
                 lastQuestion = ChatQuestions.DEPARTURE
 
             # Just the destination station?
             elif not 'destination' in self.memory:
-                print ("Alright, where would you like to go?")
+                self.sendReply("Alright, where would you like to go?")
                 lastQuestion = ChatQuestions.ARRIVAL
 
             # Or is it just the departure or arrival time we're lacking?
             elif not 'time' in self.memory:
-                print ("Great! What time do you want to leave?")
+                self.sendReply("Great! What time do you want to leave?")
                 lastQuestion = ChatQuestions.TIME
 
 
