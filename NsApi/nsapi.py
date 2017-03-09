@@ -50,9 +50,9 @@ class NsApi:
         return stations
 
 
-    def getPossibleRoutes(self, fromStation, toStation, dateTime = datetime.now(), departureTime = True):
+    def getPossibleRoutes(self, fromStation, toStation, requestTime = datetime.now(tz = timezone(timedelta(hours=1))), departureTime = True):
         params = {'fromStation': fromStation, 'toStation': toStation,
-            'dateTime': dateTime.strftime("%Y-%m-%dT%H:%M:%S"), 'departureTime': departureTime}
+            'dateTime': requestTime.strftime("%Y-%m-%dT%H:%M:%S"), 'departureTime': departureTime}
         params = urlencode(params)
 
         response = self.fetch("ns-api-treinplanner?" + params)
@@ -62,14 +62,12 @@ class NsApi:
         response = response.read().decode('utf-8')
         tree = ElementTree.fromstring(response)
 
-        nowTime = datetime.now(tz = timezone(timedelta(hours=1)))
-
         for route in tree.findall('ReisMogelijkheid'):
             departureTime = route.find("GeplandeVertrekTijd")
             departureTime = datetime.strptime(departureTime.text, "%Y-%m-%dT%H:%M:%S%z")
 
             # Iterate until we find a route that hasn't departed yet.
-            if ((nowTime - departureTime).total_seconds() < 0):
+            if ((requestTime - departureTime).total_seconds() < 0):
                 break;
 
         journey = []
