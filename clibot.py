@@ -134,8 +134,13 @@ class NsBot:
 
             # Do we have all the ingredients we need to give a journey advice?
             if 'departure' in self.memory and 'destination' in self.memory and 'time' in self.memory:
-                route = self.ns.getPossibleRoutes(self.memory['departure'], self.memory['destination'],
-                                self.memory['time'], self.memory['isDepartureTime'])
+                try:
+                    route = self.ns.getPossibleRoutes(self.memory['departure'], self.memory['destination'],
+                                    self.memory['time'], self.memory['isDepartureTime'])
+                except Exception:
+                    print ("No suitable route could be found between %s and %s. Sorry!" %
+                        (self.memory['departure'], self.memory['destination']))
+                    continue
 
                 # Give them the basic run-down.
                 print ("The next train to {toStation} departs at {0} from station {fromStation}".format(
