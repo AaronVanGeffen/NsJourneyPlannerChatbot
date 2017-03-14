@@ -38,6 +38,8 @@ class NsBot:
         self.reReplyTime = re.compile("^.*?(?P<kind>arrive|depart|vertrek|aankom(?:en:st))?\s*" +
                                       "(?:at|om|rond)\s*(?P<hour>\d+):(?P<minute>\d+).*?$", re.IGNORECASE)
 
+        self.reSimpleTime = re.compile("^.*?(?P<hour>\d{2}):(?P<minute>\d{2})(?::(?P<seconds>\d{2}))?.*?$")
+
 
     def getStationInfoFromMsg(self, msg):
         stations = {}
@@ -80,13 +82,22 @@ class NsBot:
             }
 
 
+    def handleSimpleTime(self, msg):
+        match = self.reSimpleTime.match(msg)
+        if match == None:
+            return {}
+
+        timestamp = datetime.now(tz = timezone(timedelta(hours=1)))
+        timestamp = timestamp.replace(hour = int(match.group('hour')),
+                                      minute = int(match.group('minute')))
+        return {
+            'time': timestamp,
+            'isDepartureTime': True,
+        }
+
+
     def isAValidStation(self, msg):
         return msg.lower() in self.knownStationsLower
-
-
-    def isAValidTimestamp(self, msg):
-        test = re.compile('^\d{1,2}:\d{2}$')
-        return test.match(msg) != None
 
 
     def containsGreeting(self, msg):
@@ -184,18 +195,19 @@ class NsBot:
                     self.sendReply("Lovely station, %s, but what about it?" % message)
                     return True
 
-            # Another one: are we just replying with a time?
-            elif self.isAValidTimestamp(message):
-                if self.memory['lastQuestion'] == ChatQuestions.TIME:
-                    self.sendReply("Alright, departing at %s!" % message)
-                    self.commitToMemory({'time': message, 'isDepartureTime': True})
+            # Or are we just replying with a time?
+            else:
+                time = self.handleSimpleTime(message)
+                if len(time):
+                    if self.memory['lastQuestion'] == ChatQuestions.TIME:
+                        self.sendReply("Alright, departing at %s!" % message)
+                        self.commitToMemory(time)
+                    else:
+                        self.sendReply("That's a wonderful time. What about it, though?")
+                        return True
 
-                else:
-                    self.sendReply("That's a wonderful time. What about it, though?")
+                elif isSimpleMessage:
                     return True
-
-            elif isSimpleMessage:
-                return True
 
             if self.verbose:
                 print("Memory now: ", self.memory)
