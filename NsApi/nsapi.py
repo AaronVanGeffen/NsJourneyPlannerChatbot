@@ -10,12 +10,14 @@ from xml.etree import ElementTree
 class NsApi:
     ns_api_baseurl = "http://webservices.ns.nl/"
 
-    def __init__(self, login, password):
+    def __init__(self, login, password, verbose = False):
         self.password_mgr = request.HTTPPasswordMgrWithDefaultRealm()
         self.password_mgr.add_password(None, self.ns_api_baseurl, login, password)
 
         self.handler = request.HTTPBasicAuthHandler(self.password_mgr)
         self.opener = request.build_opener(self.handler)
+
+        self.verbose = verbose
 
     def __enter__(self):
         return self
@@ -24,6 +26,8 @@ class NsApi:
         self.session.close()
 
     def fetch(self, url):
+        if self.verbose:
+            print (self.ns_api_baseurl + url)
         return self.opener.open(self.ns_api_baseurl + url)
 
     def getStationsAsList(self):

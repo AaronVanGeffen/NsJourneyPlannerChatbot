@@ -15,7 +15,7 @@ class ChatQuestions(Enum):
 
 class NsBot:
     def __init__(self, login, password, verbose = False):
-        self.ns = NsApi(login, password)
+        self.ns = NsApi(login, password, verbose)
         self.verbose = verbose
 
         self.knownStations      = self.ns.getStationsAsList()
@@ -198,14 +198,16 @@ class NsBot:
                 return True
 
             if self.verbose:
-                self.sendReply("Memory now: ", self.memory)
+                print("Memory now: ", self.memory)
 
             # Do we have all the ingredients we need to give a journey advice?
             if self.allSetForJourneyAdvice():
                 try:
                     route = self.ns.getPossibleRoutes(self.memory['departure'], self.memory['destination'],
                                     self.memory['time'], self.memory['isDepartureTime'])
-                except Exception:
+                except Exception as e:
+                    if self.verbose:
+                        print(str(e))
                     self.sendReply("No suitable route could be found between %s and %s. Sorry!" %
                         (self.memory['departure'], self.memory['destination']))
                     return True
