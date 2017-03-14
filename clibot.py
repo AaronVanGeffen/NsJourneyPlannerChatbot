@@ -147,6 +147,12 @@ class NsBot:
                 self.sendReply("\nBye!")
                 return
 
+            except Exception as e:
+                if self.verbose:
+                    print(str(e))
+                self.sendReply("\nI'm experiencing some technical difficulties! Please try again later.")
+                return
+
 
     def handleMessage(self, message):
             # Did they just greet us? Politely return the favour.
