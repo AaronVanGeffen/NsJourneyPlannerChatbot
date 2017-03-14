@@ -97,10 +97,15 @@ class NsApi:
         status = route.find("Status").text
 
         # Any delay?
-        if status == "VERTRAAGD":
-            delay = route.find("AankomstVertraging").text
+        deptDelay = route.find("VertrekVertraging")
+        if deptDelay:
+            delay = deptDelay.text
         else:
-            delay = ''
+            arrDelay = route.find("AankomstVertraging")
+            if arrDelay:
+                delay = arrDelay.text
+            else:
+                delay = ''
 
         return {
             'fromStation': fromStation,
