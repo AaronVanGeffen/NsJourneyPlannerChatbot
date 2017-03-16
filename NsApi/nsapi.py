@@ -58,6 +58,10 @@ class NsApi:
             departureTime = route.find("GeplandeVertrekTijd")
             departureTime = datetime.strptime(departureTime.text, "%Y-%m-%dT%H:%M:%S%z")
 
+            status = route.find("Status").text
+            if status == "NIET-MOGELIJK":
+                continue
+
             # Iterate until we find a route that hasn't departed yet.
             if ((requestedTime - departureTime).total_seconds() < 0):
                 return (departureTime, route)
