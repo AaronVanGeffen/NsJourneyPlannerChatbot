@@ -155,128 +155,128 @@ class NsBot:
 
 
     def handleMessage(self, message):
-            # Did they just greet us? Politely return the favour.
-            if self.containsGreeting(message):
-                self.sendReply("Hello there!")
-                isSimpleMessage = True
+        # Did they just greet us? Politely return the favour.
+        if self.containsGreeting(message):
+            self.sendReply("Hello there!")
+            isSimpleMessage = True
 
-            # Or did they just thank us? Who knows why, but let's be polite.
-            elif self.containsThanks(message):
-                self.sendReply("Oh, you're very welcome!")
-                isSimpleMessage = True
+        # Or did they just thank us? Who knows why, but let's be polite.
+        elif self.containsThanks(message):
+            self.sendReply("Oh, you're very welcome!")
+            isSimpleMessage = True
 
-            # Are they saying farewell? Then let's part ways.
-            elif self.containsGoodbye(message):
-                self.sendReply("Bye bye! See you next time!")
-                isSimpleMessage = True
-                return False
+        # Are they saying farewell? Then let's part ways.
+        elif self.containsGoodbye(message):
+            self.sendReply("Bye bye! See you next time!")
+            isSimpleMessage = True
+            return False
 
-            # Alas, things aren't as simple as they seem, this time!
+        # Alas, things aren't as simple as they seem, this time!
+        else:
+            isSimpleMessage = False
+
+        # Try and get as many info about our route.
+        stations = self.getStationInfoFromMsg(message)
+        if len(stations):
+            isSimpleMessage = False
+            self.commitToMemory(stations)
+
+        # And indeed, when we arrive or depart.
+        time = self.getTimeInfoFromMsg(message)
+        if len(time):
+            isSimpleMessage = False
+            self.commitToMemory(time)
+
+        # A few more tricks: are we replying with a valid station name?
+        if self.isAValidStation(message):
+            if self.memory['lastQuestion'] == ChatQuestions.ARRIVAL:
+                self.sendReply("Alright, going to %s! Lovely." % message)
+                self.commitToMemory({'destination': message})
+
+            elif self.memory['lastQuestion'] == ChatQuestions.DEPARTURE:
+                self.sendReply("Alright, departing at %s." % message)
+                self.commitToMemory({'departure': message})
+
             else:
-                isSimpleMessage = False
+                self.sendReply("Lovely station, %s, but what about it?" % message)
+                return True
 
-            # Try and get as many info about our route.
-            stations = self.getStationInfoFromMsg(message)
-            if len(stations):
-                isSimpleMessage = False
-                self.commitToMemory(stations)
-
-            # And indeed, when we arrive or depart.
-            time = self.getTimeInfoFromMsg(message)
+        # Or are we just replying with a time?
+        else:
+            time = self.handleSimpleTime(message)
             if len(time):
-                isSimpleMessage = False
-                self.commitToMemory(time)
-
-            # A few more tricks: are we replying with a valid station name?
-            if self.isAValidStation(message):
-                if self.memory['lastQuestion'] == ChatQuestions.ARRIVAL:
-                    self.sendReply("Alright, going to %s! Lovely." % message)
-                    self.commitToMemory({'destination': message})
-
-                elif self.memory['lastQuestion'] == ChatQuestions.DEPARTURE:
-                    self.sendReply("Alright, departing at %s." % message)
-                    self.commitToMemory({'departure': message})
-
+                if self.memory['lastQuestion'] == ChatQuestions.TIME:
+                    self.sendReply("Alright, departing at %s!" % message)
+                    self.commitToMemory(time)
                 else:
-                    self.sendReply("Lovely station, %s, but what about it?" % message)
+                    self.sendReply("That's a wonderful time. What about it, though?")
                     return True
 
-            # Or are we just replying with a time?
-            else:
-                time = self.handleSimpleTime(message)
-                if len(time):
-                    if self.memory['lastQuestion'] == ChatQuestions.TIME:
-                        self.sendReply("Alright, departing at %s!" % message)
-                        self.commitToMemory(time)
-                    else:
-                        self.sendReply("That's a wonderful time. What about it, though?")
-                        return True
+            elif isSimpleMessage:
+                return True
 
-                elif isSimpleMessage:
-                    return True
+        if self.verbose:
+            print("Memory now: ", self.memory)
 
-            if self.verbose:
-                print("Memory now: ", self.memory)
+        # Do we have all the ingredients we need to give a journey advice?
+        if self.allSetForJourneyAdvice():
+            try:
+                route = self.ns.getPossibleRoutes(self.memory['departure'], self.memory['destination'],
+                                self.memory['time'], self.memory['isDepartureTime'])
+            except Exception as e:
+                if self.verbose:
+                    print(str(e))
+                self.sendReply("No suitable route could be found between %s and %s. Sorry!" %
+                    (self.memory['departure'], self.memory['destination']))
+                return True
 
-            # Do we have all the ingredients we need to give a journey advice?
-            if self.allSetForJourneyAdvice():
-                try:
-                    route = self.ns.getPossibleRoutes(self.memory['departure'], self.memory['destination'],
-                                    self.memory['time'], self.memory['isDepartureTime'])
-                except Exception as e:
-                    if self.verbose:
-                        print(str(e))
-                    self.sendReply("No suitable route could be found between %s and %s. Sorry!" %
-                        (self.memory['departure'], self.memory['destination']))
-                    return True
+            # Give them the basic run-down.
+            self.sendReply("The next train to {toStation} departs at {0} from station {fromStation}.".format(
+                route['departureTime'].strftime("%H:%M"),
+                **route
+            ))
 
-                # Give them the basic run-down.
-                self.sendReply("The next train to {toStation} departs at {0} from station {fromStation}.".format(
-                    route['departureTime'].strftime("%H:%M"),
-                    **route
+            # Any transfers they need to be aware of?
+            if route['numTransfers'] == 1:
+                self.sendReply("You will have to transfer once.")
+            elif route['numTransfers'] > 1:
+                self.sendReply("You will have to transfer %s times." % (str(route['numTransfers'])))
+
+            self.sendReply("Planned travel time is %s." % (route['travelTime']))
+
+            # Is the train delayed?
+            if route['isDelayed']:
+                self.sendReply("Note: the train is currently delayed by %s." % route['currentDelay'])
+
+            # Blurt out the whole report.
+            # TODO: make this optional or requestable?
+            currentSegment = 0
+            for track in route['journey']:
+                currentSegment += 1
+                self.sendReply("({0}/{1}) {startStation} platform {startPlatform} at {2} 👉 {endStation} platform {endPlatform} at {3}".format(
+                    currentSegment,
+                    len(route['journey']),
+                    track['startTime'].strftime("%H:%M"),
+                    track['endTime'].strftime("%H:%M"),
+                    **track
                 ))
 
-                # Any transfers they need to be aware of?
-                if route['numTransfers'] == 1:
-                    self.sendReply("You will have to transfer once.")
-                elif route['numTransfers'] > 1:
-                    self.sendReply("You will have to transfer %s times." % (str(route['numTransfers'])))
+        # Just the departure station?
+        elif not 'departure' in self.memory:
+            self.sendReply("Okay. From which station would you like to depart?")
+            self.commitToMemory({'lastQuestion': ChatQuestions.DEPARTURE})
 
-                self.sendReply("Planned travel time is %s." % (route['travelTime']))
+        # Just the destination station?
+        elif not 'destination' in self.memory:
+            self.sendReply("Alright, where would you like to go?")
+            self.commitToMemory({'lastQuestion': ChatQuestions.ARRIVAL})
 
-                # Is the train delayed?
-                if route['isDelayed']:
-                    self.sendReply("Note: the train is currently delayed by %s." % route['currentDelay'])
+        # Or is it just the departure or arrival time we're lacking?
+        elif not 'time' in self.memory:
+            self.sendReply("Great! What time do you want to leave?")
+            self.commitToMemory({'lastQuestion': ChatQuestions.TIME})
 
-                # Blurt out the whole report.
-                # TODO: make this optional or requestable?
-                currentSegment = 0
-                for track in route['journey']:
-                    currentSegment += 1
-                    self.sendReply("({0}/{1}) {startStation} platform {startPlatform} at {2} 👉 {endStation} platform {endPlatform} at {3}".format(
-                        currentSegment,
-                        len(route['journey']),
-                        track['startTime'].strftime("%H:%M"),
-                        track['endTime'].strftime("%H:%M"),
-                        **track
-                    ))
-
-            # Just the departure station?
-            elif not 'departure' in self.memory:
-                self.sendReply("Okay. From which station would you like to depart?")
-                self.commitToMemory({'lastQuestion': ChatQuestions.DEPARTURE})
-
-            # Just the destination station?
-            elif not 'destination' in self.memory:
-                self.sendReply("Alright, where would you like to go?")
-                self.commitToMemory({'lastQuestion': ChatQuestions.ARRIVAL})
-
-            # Or is it just the departure or arrival time we're lacking?
-            elif not 'time' in self.memory:
-                self.sendReply("Great! What time do you want to leave?")
-                self.commitToMemory({'lastQuestion': ChatQuestions.TIME})
-
-            return True
+        return True
 
 
 # Optionally run the bot.
