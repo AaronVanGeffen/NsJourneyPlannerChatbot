@@ -7,6 +7,8 @@ from dazeus import DaZeus
 
 
 class DaZeusNS(NsBot):
+    doBasicPleasantries = False
+
     def __init__(self, login, password, address, verbose = False):
         self.dazeus = DaZeus(address, verbose)
         self.dazeus.subscribe_command("ns", self.handleIRCmessage)

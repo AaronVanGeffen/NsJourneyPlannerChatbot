@@ -14,6 +14,8 @@ class ChatQuestions(Enum):
 
 
 class NsBot:
+    doBasicPleasantries = True
+
     def __init__(self, login, password, verbose = False):
         self.ns = NsApi(login, password, verbose)
         self.verbose = verbose
@@ -155,27 +157,28 @@ class NsBot:
 
 
     def handleMessage(self, message):
-        # Did they just greet us? Politely return the favour.
-        if self.containsGreeting(message):
-            self.sendReply("Hello there!")
-            isSimpleMessage = True
+        if self.doBasicPleasantries:
+            # Did they just greet us? Politely return the favour.
+            if self.containsGreeting(message):
+                self.sendReply("Hello there!")
+                isSimpleMessage = True
 
-        # Or did they just thank us? Who knows why, but let's be polite.
-        elif self.containsThanks(message):
-            self.sendReply("Oh, you're very welcome!")
-            isSimpleMessage = True
+            # Or did they just thank us? Who knows why, but let's be polite.
+            elif self.containsThanks(message):
+                self.sendReply("Oh, you're very welcome!")
+                isSimpleMessage = True
 
-        # Are they saying farewell? Then let's part ways.
-        elif self.containsGoodbye(message):
-            self.sendReply("Bye bye! See you next time!")
-            isSimpleMessage = True
-            return False
+            # Are they saying farewell? Then let's part ways.
+            elif self.containsGoodbye(message):
+                self.sendReply("Bye bye! See you next time!")
+                isSimpleMessage = True
+                return False
 
-        # Alas, things aren't as simple as they seem, this time!
-        else:
-            isSimpleMessage = False
+            # Alas, things aren't as simple as they seem, this time!
+            else:
+                isSimpleMessage = False
 
-        # Try and get as many info about our route.
+        # Try and get as much info about our route as possible.
         stations = self.getStationInfoFromMsg(message)
         if len(stations):
             isSimpleMessage = False
